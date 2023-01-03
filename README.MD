@@ -37,7 +37,6 @@ AdvancedEXASOL requires the following modules:
 - [dask.dataframe](https://docs.dask.org/en/latest/dataframe.html)
 - [Pandas](https://pandas.pydata.org/)
 - [xlwt](https://pypi.org/project/xlwt/)
-- [re](https://docs.python.org/3/library/re.html)
 
 ## Usage
 
