@@ -3,13 +3,22 @@
 AdvancedEXASOL is an extension of [pyEXASOL](https://github.com/EXASOL/pyEXASOL) library for faster data manipulation using Dask.
 <img align="left" width="400" height="100" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Exasol_logo.svg/2560px-Exasol_logo.svg.png">
 
-<div style="position: relative; width: 100%; padding-bottom: 56.25%">
-<iframe src="https://www.youtube.com/embed/ylgFxRdMydw" 
-        title="Web Load Testing with West Wind WebSurge 2" frameborder="0" allowfullscreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-        style="position: absolute; width: 100%; height: 100%;">
-</iframe>
-</div>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.3.0/ZeroClipboard.min.js"></script>
+  </head>
+  <body>
+    <!-- Code-Block mit Copy-to-Clipboard-Schaltfläche -->
+    <pre><code class="copy-to-clipboard">def add(a, b):
+    return a + b</code></pre>
+    
+    <!-- Skript, das die Copy-to-Clipboard-Schaltfläche aktiviert -->
+    <script>
+      var copyCode = new ZeroClipboard(document.querySelector('.copy-to-clipboard'));
+    </script>
+  </body>
+</html>
+
 ## Features
 
 AdvancedEXASOL includes the following features:
