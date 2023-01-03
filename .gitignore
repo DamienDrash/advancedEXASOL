@@ -1,3 +1,6 @@
+# PYPI configuration
+.pypirc
+
 # Compiled python modules.
 *.pyc
 
