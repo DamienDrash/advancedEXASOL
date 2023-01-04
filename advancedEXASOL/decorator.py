@@ -1,5 +1,4 @@
 import re
-
 import pandas as pd
 
 
@@ -7,45 +6,45 @@ def ensure_table_exists(func):
     def wrapper(*args, **kwargs):
         # Get the AdvancedExaFeatures instance
         advanced_exa_features = args[0]
+        source = args[1]
+        target_table = args[2]
 
         # Check if the target table exists
-        if not advanced_exa_features.table_exists(kwargs["target_table"]):
-            # Get the data source
-            source = kwargs["source"]
-
+        if not advanced_exa_features.table_exists(target_table):
             # Check if the source is a DataFrame
             if isinstance(source, pd.DataFrame):
                 # Create the table from the DataFrame
-                advanced_exa_features.create_table_from_df(kwargs["target_table"], source)
+                advanced_exa_features.create_table_from_df(target_table, source)
+            elif isinstance(source, dd.DataFrame):
+                # Create the table from the DataFrame
+                advanced_exa_features.create_table_from_df(target_table, source.compute())
             else:
                 # Create the table from the source table
-                advanced_exa_features.create_table_from_table(kwargs["target_table"], source)
+                advanced_exa_features.create_table_from_table(target_table, source)
         else:
             # Get the column names for the target and source tables
-            target_columns = advanced_exa_features.get_column_names(kwargs["target_table"])
-            source_columns = advanced_exa_features.get_column_names(kwargs["source"])
+            target_columns = advanced_exa_features.get_column_names(target_table)
+            source_columns = advanced_exa_features.get_column_names(source)
 
             # Get the common columns between the target and source tables
             common_columns = list(set(target_columns) & set(source_columns))
 
             # Check if there are any missing columns in the target table
-            missing_columns = [col for col in source_columns if col not in target_columns]
+            if isinstance(source, pd.DataFrame) or isinstance(source, dd.DataFrame):
+                missing_columns = [[col, advanced_exa_features.get_column_data_type_from_df(source, col)] for col in
+                                   source_columns if col not in target_columns]
+            else:
+                missing_columns = [[col, advanced_exa_features.get_column_data_type(source, col)] for col in
+                                   source_columns if col not in target_columns]
+
             if missing_columns:
                 # Add the missing columns to the target table
-                advanced_exa_features.add_columns(kwargs["target_table"], missing_columns)
+                advanced_exa_features.add_columns(target_table, missing_columns)
+            else:
+                # Call the original function
+                return func(*args, **kwargs)
 
-            # Check if there are any mismatching data types between the target and source tables
-            mismatching_columns = []
-            for col in common_columns:
-                target_data_type = advanced_exa_features.get_column_data_type(kwargs["target_table"], col)
-                source_data_type = advanced_exa_features.get_column_data_type(kwargs["source"], col)
-                if target_data_type != source_data_type:
-                    mismatching_columns.append(col)
-            if mismatching_columns:
-                # Raise an error with the mismatching columns
-                raise ValueError(
-                    f"The following columns have mismatching data types between the target table and the source: {mismatching_columns}")
-
+    return wrapper
 
 def ensure_connection(func):
     def wrapper(*args, **kwargs):
@@ -53,15 +52,14 @@ def ensure_connection(func):
         advanced_exa_features = args[0]
 
         # Check if the connection is closed
-        if advanced_exa_features.conn.closed:
+        if advanced_exa_features.conn.is_closed:
             # Re-establish the connection
-            advanced_exa_features.connect(advanced_exa_features.connection_params)
+            advanced_exa_features.conn = advanced_exa_features.connect(advanced_exa_features.connection_params)
 
         # Call the decorated function
         return func(*args, **kwargs)
 
     return wrapper
-
 
 def handle_transactions(func):
     def wrapper(*args, **kwargs):
@@ -86,7 +84,6 @@ def handle_transactions(func):
 
     return wrapper
 
-
 def sql_injection_safe(func):
     def wrapper(*args, **kwargs):
         # Get the AdvancedExaFeatures instance
@@ -104,7 +101,6 @@ def sql_injection_safe(func):
         return func(*args, **kwargs)
 
     return wrapper
-
 
 def enforce_resource_limits(func):
     def wrapper(*args, **kwargs):

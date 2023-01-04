@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='advancedEXASOL',
-    version='0.0.2',
+    version='0.1.0',
     description="advancedEXASOL is a Python library that extends pyexasol's functionality.",
     author='Damien Frigewski',
     author_email='dfrigewski@gmail.com',

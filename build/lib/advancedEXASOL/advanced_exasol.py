@@ -1,3 +1,5 @@
+import json
+
 from .decorator import ensure_table_exists, ensure_connection, handle_transactions, sql_injection_safe, enforce_resource_limits
 import pyexasol
 import dask.dataframe as dd
@@ -5,6 +7,31 @@ import pandas as pd
 import requests
 import csv
 import xlwt
+
+
+def _get_source_type(source):
+    if isinstance(source, pd.DataFrame):
+        return 'pandas'
+    elif isinstance(source, dd.DataFrame):
+        return 'dask'
+    elif isinstance(source, str):
+        if source.endswith('.csv'):
+            return 'csv'
+        elif source.endswith('.json'):
+            return 'json'
+        elif source.endswith('.xml'):
+            return 'xml'
+        elif source.endswith('.xls') or source.endswith('.xlsx'):
+            return 'excel'
+        else:
+            try:
+                json.loads(source)
+                return 'json_str'
+            except json.JSONDecodeError:
+                raise ValueError(
+                    'Unable to determine source type. Please provide a valid file path or a valid DataFrame.')
+    else:
+        raise ValueError('Unable to determine source type. Please provide a valid file path or a valid DataFrame.')
 
 
 class Features(pyexasol.ExaConnection):
@@ -90,6 +117,20 @@ class Features(pyexasol.ExaConnection):
     @sql_injection_safe
     def rollback(self):
         return self.conn.rollback()
+
+    def _convert_to_dask_df(self, source, source_type):
+        if source_type == 'pandas_df':
+            return dd.from_pandas(source, npartitions=self.npartitions)
+        elif source_type == 'csv':
+            return dd.read_csv(source, blocksize=self.blocksize)
+        elif source_type == 'json':
+            return dd.read_json(source, blocksize=self.blocksize)
+        elif source_type == 'xml':
+            return dd.read_xml(source, blocksize=self.blocksize)
+        elif source_type == 'excel':
+            return dd.read_excel(source, blocksize=self.blocksize)
+        else:
+            raise ValueError(f"Unrecognized source type: {source_type}")
 
     @enforce_resource_limits
     @ensure_connection
@@ -349,7 +390,7 @@ class Features(pyexasol.ExaConnection):
             # Check if the source type is not provided
             if source_type is None:
                 # Get the source type
-                source_type = self._get_source_type(source)
+                source_type = _get_source_type(source)
 
             # Convert the source to a Dask DataFrame
             source_df = self._convert_to_dask_df(source, source_type)
