@@ -50,9 +50,9 @@ class Features(pyexasol.ExaConnection):
         'timedelta[ns]': 'INTERVAL'
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.conn = pyexasol.connect(**connection_params)
+    def __init__(self, dsn, user, password, schema=None, *args, **kwargs):
+        super().__init__(dsn, user, password, schema)
+        self.conn = pyexasol.ExaConnection(dsn, user, password, schema=schema)
 
         self.options = {}
         self.options['autocommit'] = self.DEFAULT_AUTOCOMMIT
@@ -88,12 +88,13 @@ class Features(pyexasol.ExaConnection):
         self.options['refresh_token'] = None
 
     def connect(self, connection_params):
-        self.conn = pyexasol.connect(**connection_params)
+        self.conn = pyexasol.connect(connection_params)
 
     def close(self):
         self.conn.close()
         self.conn = None
 
+    @ensure_connection
     def execute(self, sql, **kwargs):
         return self.conn.execute(sql, **kwargs)
 
@@ -106,9 +107,11 @@ class Features(pyexasol.ExaConnection):
     def fetchmany(self, size=None, **kwargs):
         return self.execute.fetchmany(size=size, **kwargs)
 
+    @ensure_connection
     def commit(self):
         return self.conn.commit()
 
+    @ensure_connection
     def rollback(self):
         return self.conn.rollback()
 
@@ -181,6 +184,8 @@ class Features(pyexasol.ExaConnection):
     def export_to_dask(self, sql, chunksize=10000):
         return dd.from_pandas(self.conn.export_to_pandas(query_or_table=sql), chunksize=chunksize)
 
+    @ensure_connection
+    @ensure_table_exists
     def import_from_dask(self, source, target_table):
         source = source.compute()
         self.conn.import_from_pandas(source, target_table)
@@ -261,6 +266,8 @@ class Features(pyexasol.ExaConnection):
         select_stmt += f'\n) AS {target_table}'
         return select_stmt
 
+    @ensure_connection
+    @ensure_table_exists
     def merge_tables(self, source, source_type, target_table, primary_columns=['@@@@@@@'], exclude_columns=[]):
         """Merge a table or query with an Exasol table, updating common columns and inserting new ones."""
         try:
@@ -315,6 +322,8 @@ class Features(pyexasol.ExaConnection):
             # Print the number of rows affected by the MERGE INTO statement
             print(f"{result.rowcount} rows affected")
 
+    @ensure_connection
+    @ensure_table_exists
     def merge_from_external(self, target_table, source, primary_columns=['@@@@@@@'], chunksize=10000):
         try:
             # Convert the source to a Dask DataFrame
